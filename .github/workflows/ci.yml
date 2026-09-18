@@ -13,6 +13,9 @@ jobs:
   build-and-test:
     runs-on: windows-latest
 
+    env:
+      ConnectionStrings__DefaultConnection: 'Server=(localdb)\MSSQLLocalDB;Database=TaskFlowDb_CI;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true'
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -27,6 +30,17 @@ jobs:
 
       - name: Build solution
         run: dotnet build TaskFlow.sln --configuration Release --no-restore
+
+      - name: Start SQL Server LocalDB
+        shell: powershell
+        run: |
+          sqllocaldb start MSSQLLocalDB
+
+      - name: Install EF Core CLI
+        run: dotnet tool install --global dotnet-ef --version 8.0.20
+
+      - name: Apply database migrations
+        run: dotnet ef database update --project TaskFlow.Infrastructure --startup-project TaskFlow.API --configuration Release
 
       - name: Run tests
         run: dotnet test TaskFlow.sln --configuration Release --no-build
